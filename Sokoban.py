@@ -16,8 +16,13 @@ class SokobanGame:
     GRAY = (200, 200, 200)
     GREEN =(34,139,34)
     RED = (220,20,60)
+    BLUE = (0, 122, 204)          # Nhấn mạnh
     LIGHT_BLUE = (173, 216, 230)
     DARK_BLUE = (0, 0, 139)
+    DARK_GRAY = (64, 64, 64)
+    MEDIUM_GRAY = (70, 70, 70)    # Màu nút
+    LIGHT_GRAY = (100, 100, 100)  # Viền nút
+    WHITE = (255, 255, 255)       # Màu chữ sáng   
     BACKGROUND = (255, 160, 122)
 # Khởi tạo
     def __init__(self, window_size: Tuple[int, int] = (1100, 600)):
@@ -184,6 +189,7 @@ class SokobanGame:
             if current_map:
                 maps.append(current_map)
         return maps
+    
     # Chuyển map thành mê cung
     @staticmethod
     def map_to_game_state(map_data: List[str]) -> Tuple[List[List[int]], Tuple[int, int], List[Tuple[int, int]], List[Tuple[int, int]]]:
@@ -210,6 +216,7 @@ class SokobanGame:
                     maze_row.append(0)
             maze.append(maze_row)
         return maze, player_pos, boxes, targets
+    
     # Vẽ mê cung
     def draw_maze(self, maze: List[List[int]], boxes: List[Tuple[int, int]], targets: List[Tuple[int, int]]):
         self.screen.fill(self.BACKGROUND)
@@ -228,24 +235,34 @@ class SokobanGame:
             self.screen.blit(self.images['box'], pos)
 
         self.draw_info_panel()
-    # Vẽ khung chức năng
+
+# Vẽ khung chức năng  
     def draw_info_panel(self):
         panel_rect = pygame.Rect(800, 0, 300, self.window_size[1])
         pygame.draw.rect(self.screen, self.GRAY, panel_rect)
 
         font = pygame.font.Font(None, 32)
-        
-        # Vẽ thời gian 
-        time_text = font.render(f"Time: {self.game_time:.5f}", True, self.BLACK)
-        self.screen.blit(time_text, (820, 20))
-        time_text = font.render(f"Steps: {self.solve_steps}", True, self.BLACK)
-        self.screen.blit(time_text, (820, 50))    
 
-        # Vẽ  thuât toán
+        # Draw time
+        clock_icon = pygame.image.load(os.path.join(os.path.dirname(__file__), 'img', 'clock.png')).convert_alpha()
+        clock_icon = pygame.transform.scale(clock_icon, (30, 30))
+        self.screen.blit(clock_icon, (820, 20))
+        time_text = font.render(f"{self.game_time:.5f}s", True, self.BLACK)
+        self.screen.blit(time_text, (860, 20))
+
+        # Draw steps
+        steps_icon = pygame.image.load(os.path.join(os.path.dirname(__file__), 'img', 'footsteps.png')).convert_alpha()
+        steps_icon = pygame.transform.scale(steps_icon, (30, 30))
+        self.screen.blit(steps_icon, (820, 50))
+        steps_text = font.render(f"{self.solve_steps} steps", True, self.BLACK)
+        self.screen.blit(steps_text, (860, 50))
+
+        # Draw algorithm
         algorithm_text = font.render(f"Algorithm: {self.current_algorithm.upper()}", True, self.BLACK)
         self.screen.blit(algorithm_text, (820, 140))
-        # Vẽ nút
-        button_texts = ["Pause (P)" , "Reset (R)" , "Select (Esc)" , "Quit"]
+
+        # Draw buttons
+        button_texts = ["Pause (P)", "Reset (R)", "Select (Esc)", "Quit"]
         for i, text in enumerate(button_texts):
             button_rect = pygame.Rect(820, 220 + i*60, 260, 50)
             pygame.draw.rect(self.screen, self.LIGHT_BLUE, button_rect)
@@ -253,16 +270,19 @@ class SokobanGame:
             text_rect = button_text.get_rect(center=button_rect.center)
             self.screen.blit(button_text, text_rect)
 
-    # Vẽ nút
-    def draw_button(self, text: str, rect: pygame.Rect, color: Tuple[int, int, int], centered: bool = False):
-        pygame.draw.rect(self.screen, color, rect)
-        font = pygame.font.Font(None, 32)
-        text_surface = font.render(text, True, self.BLACK)
-        if centered:
-            text_rect = text_surface.get_rect(center=rect.center)
-        else:
-            text_rect = text_surface.get_rect(topleft=(rect.x + 10, rect.y + 10))
-        self.screen.blit(text_surface, text_rect)
+ #vẽ nút
+    def draw_button(self, text, rect, color, hover=False):
+        shadow_offset = 5
+        pygame.draw.rect(self.screen, self.DARK_GRAY, rect.move(shadow_offset, shadow_offset), border_radius=10)
+        pygame.draw.rect(self.screen, color, rect, border_radius=10)
+        if hover:
+            pygame.draw.rect(self.screen, self.LIGHT_GRAY, rect, 2, border_radius=10)
+        font = pygame.font.Font(None, 30)
+        label = font.render(text, True, self.WHITE)
+        self.screen.blit(label, (rect.centerx - label.get_width() // 2, rect.centery - label.get_height() // 2))
+
+
+
     # Vẽ map (Xem trước)
    
     def draw_map_preview(self, map_data: List[str], preview_rect: pygame.Rect):
@@ -302,7 +322,7 @@ class SokobanGame:
                 elif cell == 'T':
                     self.screen.blit(self.target_image, rect.topleft)
 
-    # Vẽ phần chọn map
+# # Vẽ phần chọn map   
     def map_selection_screen(self) -> Tuple[int, str]:
         current_map = 0
         preview_width, preview_height = 400, 300
@@ -310,11 +330,12 @@ class SokobanGame:
         preview_y = 150
         preview_rect = pygame.Rect(preview_x, preview_y, preview_width, preview_height)
 
+        # Các nút chọn
         buttons = {
             'left': pygame.Rect(preview_x - 60, preview_y + preview_height // 2 - 25, 50, 50),
             'right': pygame.Rect(preview_x + preview_width + 10, preview_y + preview_height // 2 - 25, 50, 50),
             'select': pygame.Rect(self.window_size[0] // 2 - 50, preview_y + preview_height + 20, 100, 50),
-            'algorithm': pygame.Rect(self.window_size[0] // 2 - 100, preview_y + preview_height + 80, 200, 50) 
+            'algorithm': pygame.Rect(self.window_size[0] // 2 - 100, preview_y + preview_height + 80, 200, 50),
         }
 
         while True:
@@ -339,7 +360,7 @@ class SokobanGame:
                         current_map = (current_map - 1) % len(self.maps)
                     elif event.key == pygame.K_RIGHT:
                         current_map = (current_map + 1) % len(self.maps)
-                    elif event.key == pygame.K_UP or event.key == pygame.K_DOWN:
+                    elif event.key in (pygame.K_UP, pygame.K_DOWN):
                         current_index = self.algorithms.index(self.current_algorithm)
                         next_index = (current_index + 1) % len(self.algorithms)
                         self.current_algorithm = self.algorithms[next_index]
@@ -349,21 +370,24 @@ class SokobanGame:
                         pygame.quit()
                         sys.exit()
 
-            self.screen.fill(self.WHITE)
-            font = pygame.font.Font(None, 40)
-            title = font.render(f"Select a Map ({current_map + 1}/{len(self.maps)})", True, self.BLACK)
-            self.screen.blit(title, (self.window_size[0] // 2 - title.get_width() // 2, 50))
+                self.screen.fill(self.DARK_GRAY)
+                font = pygame.font.Font(None, 40)
+                title = font.render(f"Select a Map ({current_map + 1}/{len(self.maps)})", True, self.WHITE)
+                self.screen.blit(title, (self.window_size[0] // 2 - title.get_width() // 2, 50))
 
-            pygame.draw.rect(self.screen, self.BLACK, preview_rect.inflate(4, 4), 2)
-            self.draw_map_preview(self.maps[current_map], preview_rect)
+                # Hiển thị preview map
+                pygame.draw.rect(self.screen, self.BLACK, preview_rect.inflate(4, 4), 2)
+                self.draw_map_preview(self.maps[current_map], preview_rect)
 
-            self.draw_button("<", buttons['left'], self.GRAY, True)
-            self.draw_button(">", buttons['right'], self.GRAY, True)
-            self.draw_button("Select", buttons['select'], self.LIGHT_BLUE, True)
-            self.draw_button(f"{self.current_algorithm.upper()}", buttons['algorithm'], self.LIGHT_BLUE, True)
+                # Vẽ các nút
+                self.draw_button("<", buttons['left'], self.BLUE, True)
+                self.draw_button(">", buttons['right'], self.BLUE, True)
+                self.draw_button("Select", buttons['select'], self.BLUE, True)
+                self.draw_button(f"{self.current_algorithm.upper()}", buttons['algorithm'], self.DARK_BLUE, True)
 
-            pygame.display.flip()
-    # Thay đổi hướng nhân vật
+                pygame.display.flip()
+
+
     def update_player_direction(self, move):
         if move == (-1, 0):
             self.player_direction = 'trai'
@@ -400,6 +424,7 @@ class SokobanGame:
             if current_state.is_goal():
                 self.handle_level_complete()
                 return "COMPLETE"
+                
     # Hành động hoàn thành trò chơi
     def handle_level_complete(self):
         font = pygame.font.Font(None, 74)
