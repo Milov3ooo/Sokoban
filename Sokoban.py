@@ -2,6 +2,7 @@ import threading
 import pygame
 import sys
 import time
+
 from typing import List, Tuple, Optional
 from sokoban_common import SokobanState, MOVES
 from astar_solver import solve_sokoban_astar
@@ -38,8 +39,18 @@ class SokobanGame:
         self.solve_steps = 0      
         self.player_moves = []
         self.player_moves_by_space = []
-# Tài nguyên
+
+# Tài nguyên      
+
     def load_assets(self):
+        """
+        Tải tài nguyên hình ảnh cho các đối tượng trong trò chơi.
+
+        Hàm Load sẽ đọc danh sách các tài nguyên hình ảnh từ thư mục `img/` và 
+        lưu chúng vào `self.images`. Mỗi hình ảnh sẽ được chuyển đổi kích thước 
+        để phù hợp với kích thước ô lưới (`self.cell_size`).
+               
+        """
         assets = ['wall', 'ghost', 'box', 'target', 'trai', 'phai', 'tren', 'duoi']
         self.images = {}
         for asset in assets:
@@ -47,9 +58,19 @@ class SokobanGame:
             self.images[asset] = pygame.transform.scale(image, (self.cell_size, self.cell_size))  
 
 # Giải pháp
+
     # chuyển bước đi thành dạng kí tự
     def move_to_string(self, move: Tuple[int, int]) -> str:
-        """Chuyển đổi tuple move thành ký tự hướng di chuyển"""
+        """
+        Chuyển tuple di chuyển thành ký tự hướng.
+
+           - (-1, 0): 'L' (trái)
+           - (1, 0): 'R' (phải)
+           - (0, -1): 'U' (lên)
+           - (0, 1): 'D' (xuống)
+    
+        Trả về: Ký tự hướng hoặc '' nếu không hợp lệ.
+        """
         move_map = {
             (-1, 0): 'L',
             (1, 0): 'R',
@@ -57,41 +78,78 @@ class SokobanGame:
             (0, 1): 'D'
         }
         return move_map.get(move, '')
+    
     # Lưu giải pháp
+
+    # def save_solution(self, map_index: int):
+    #     """Lưu giải pháp vào file solution tương ứng"""
+
+    #     if not self.player_moves and not self.player_moves_by_space:
+    #         return
+
+    #     # Tạo chuỗi cho cả hai loại giải pháp
+    #     solutions_to_save = []
+        
+    #     if self.player_moves:
+    #         solution_str = ' '.join(self.move_to_string(move) for move in self.player_moves)
+    #         solutions_to_save.append(solution_str)
+        
+    #     if self.player_moves_by_space:
+    #         solution_str_by_space = ' '.join(self.move_to_string(move) for move in self.player_moves_by_space)
+    #         if solution_str_by_space not in solutions_to_save:
+    #             solutions_to_save.append(solution_str_by_space)
+
+    #     # Đọc các giải pháp hiện có
+    #     existing_solutions = set()
+    #     try:
+    #         with open(f'solution/solution_{map_index + 1}.txt', 'r') as file:
+    #             content = file.read().strip()
+    #             if content:
+    #                 existing_solutions = set(solution.strip() for solution in content.split('#') if solution.strip())
+    #     except FileNotFoundError:
+    #         pass
+    #     new_solutions = [sol for sol in solutions_to_save if sol not in existing_solutions]
+        
+    #     if new_solutions:
+    #         with open(f'solution/solution_{map_index + 1}.txt', 'a') as file:
+    #             for solution in new_solutions:
+    #                 if existing_solutions:  # Nếu file không trống, thêm dấu # trước
+    #                     file.write('\n')
+    #                 file.write(f'{solution}\n#') 
+    
     def save_solution(self, map_index: int):
-        """Lưu giải pháp vào file solution tương ứng"""
-        if not self.player_moves and not self.player_moves_by_space:
-            return
 
-        # Tạo chuỗi cho cả hai loại giải pháp
-        solutions_to_save = []
-        
-        if self.player_moves:
-            solution_str = ' '.join(self.move_to_string(move) for move in self.player_moves)
-            solutions_to_save.append(solution_str)
-        
-        if self.player_moves_by_space:
-            solution_str_by_space = ' '.join(self.move_to_string(move) for move in self.player_moves_by_space)
-            if solution_str_by_space not in solutions_to_save:
-                solutions_to_save.append(solution_str_by_space)
 
-        # Đọc các giải pháp hiện có
+    # Kiểm tra nếu không có giải pháp nào
+    if not (self.player_moves or self.player_moves_by_space):
+        return
+
+    # Tạo danh sách các giải pháp cần lưu
+    solutions_to_save = {
+        ' '.join(self.move_to_string(move) for move in self.player_moves),
+        ' '.join(self.move_to_string(move) for move in self.player_moves_by_space),
+    }
+    solutions_to_save.discard('')  # Loại bỏ chuỗi rỗng nếu có
+
+    # Đọc các giải pháp hiện có từ file
+    file_path = f'solution/solution_{map_index + 1}.txt'
+    try:
+        with open(file_path, 'r') as file:
+            existing_solutions = set(
+                solution.strip() for solution in file.read().strip().split('#') if solution.strip()
+            )
+    except FileNotFoundError:
         existing_solutions = set()
-        try:
-            with open(f'solution/solution_{map_index + 1}.txt', 'r') as file:
-                content = file.read().strip()
-                if content:
-                    existing_solutions = set(solution.strip() for solution in content.split('#') if solution.strip())
-        except FileNotFoundError:
-            pass
-        new_solutions = [sol for sol in solutions_to_save if sol not in existing_solutions]
-        
-        if new_solutions:
-            with open(f'solution/solution_{map_index + 1}.txt', 'a') as file:
-                for solution in new_solutions:
-                    if existing_solutions:  # Nếu file không trống, thêm dấu # trước
-                        file.write('\n')
-                    file.write(f'{solution}\n#')                
+
+    # Lọc các giải pháp mới
+    new_solutions = solutions_to_save - existing_solutions
+
+    # Ghi các giải pháp mới vào file
+    if new_solutions:
+        with open(file_path, 'a') as file:
+            file.write('\n'.join(f'{solution}\n#' for solution in new_solutions))
+      
+
     # Sắp xếp giải pháp
     def sort_solutions(self,map_index):
         file_path = f'solution/solution_{map_index+1}.txt'
