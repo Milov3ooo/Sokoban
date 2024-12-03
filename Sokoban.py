@@ -2,6 +2,7 @@ import threading
 import pygame
 import sys
 import time
+import os
 
 from typing import List, Tuple, Optional
 from sokoban_common import SokobanState, MOVES
@@ -81,75 +82,42 @@ class SokobanGame:
     
     # Lưu giải pháp
 
-    # def save_solution(self, map_index: int):
-    #     """Lưu giải pháp vào file solution tương ứng"""
-
-    #     if not self.player_moves and not self.player_moves_by_space:
-    #         return
-
-    #     # Tạo chuỗi cho cả hai loại giải pháp
-    #     solutions_to_save = []
-        
-    #     if self.player_moves:
-    #         solution_str = ' '.join(self.move_to_string(move) for move in self.player_moves)
-    #         solutions_to_save.append(solution_str)
-        
-    #     if self.player_moves_by_space:
-    #         solution_str_by_space = ' '.join(self.move_to_string(move) for move in self.player_moves_by_space)
-    #         if solution_str_by_space not in solutions_to_save:
-    #             solutions_to_save.append(solution_str_by_space)
-
-    #     # Đọc các giải pháp hiện có
-    #     existing_solutions = set()
-    #     try:
-    #         with open(f'solution/solution_{map_index + 1}.txt', 'r') as file:
-    #             content = file.read().strip()
-    #             if content:
-    #                 existing_solutions = set(solution.strip() for solution in content.split('#') if solution.strip())
-    #     except FileNotFoundError:
-    #         pass
-    #     new_solutions = [sol for sol in solutions_to_save if sol not in existing_solutions]
-        
-    #     if new_solutions:
-    #         with open(f'solution/solution_{map_index + 1}.txt', 'a') as file:
-    #             for solution in new_solutions:
-    #                 if existing_solutions:  # Nếu file không trống, thêm dấu # trước
-    #                     file.write('\n')
-    #                 file.write(f'{solution}\n#') 
-    
     def save_solution(self, map_index: int):
+        """Lưu giải pháp vào file solution tương ứng"""
 
+        if not self.player_moves and not self.player_moves_by_space:
+            return
 
-    # Kiểm tra nếu không có giải pháp nào
-    if not (self.player_moves or self.player_moves_by_space):
-        return
+        # Tạo chuỗi cho cả hai loại giải pháp
+        solutions_to_save = []
+        
+        if self.player_moves:
+            solution_str = ' '.join(self.move_to_string(move) for move in self.player_moves)
+            solutions_to_save.append(solution_str)
+        
+        if self.player_moves_by_space:
+            solution_str_by_space = ' '.join(self.move_to_string(move) for move in self.player_moves_by_space)
+            if solution_str_by_space not in solutions_to_save:
+                solutions_to_save.append(solution_str_by_space)
 
-    # Tạo danh sách các giải pháp cần lưu
-    solutions_to_save = {
-        ' '.join(self.move_to_string(move) for move in self.player_moves),
-        ' '.join(self.move_to_string(move) for move in self.player_moves_by_space),
-    }
-    solutions_to_save.discard('')  # Loại bỏ chuỗi rỗng nếu có
-
-    # Đọc các giải pháp hiện có từ file
-    file_path = f'solution/solution_{map_index + 1}.txt'
-    try:
-        with open(file_path, 'r') as file:
-            existing_solutions = set(
-                solution.strip() for solution in file.read().strip().split('#') if solution.strip()
-            )
-    except FileNotFoundError:
+        # Đọc các giải pháp hiện có
         existing_solutions = set()
-
-    # Lọc các giải pháp mới
-    new_solutions = solutions_to_save - existing_solutions
-
-    # Ghi các giải pháp mới vào file
-    if new_solutions:
-        with open(file_path, 'a') as file:
-            file.write('\n'.join(f'{solution}\n#' for solution in new_solutions))
-      
-
+        try:
+            with open(f'solution/solution_{map_index + 1}.txt', 'r') as file:
+                content = file.read().strip()
+                if content:
+                    existing_solutions = set(solution.strip() for solution in content.split('#') if solution.strip())
+        except FileNotFoundError:
+            pass
+        new_solutions = [sol for sol in solutions_to_save if sol not in existing_solutions]
+        
+        if new_solutions:
+            with open(f'solution/solution_{map_index + 1}.txt', 'a') as file:
+                for solution in new_solutions:
+                    if existing_solutions:  # Nếu file không trống, thêm dấu # trước
+                        file.write('\n')
+                    file.write(f'{solution}\n#')       
+                             
     # Sắp xếp giải pháp
     def sort_solutions(self,map_index):
         file_path = f'solution/solution_{map_index+1}.txt'
@@ -296,12 +264,28 @@ class SokobanGame:
             text_rect = text_surface.get_rect(topleft=(rect.x + 10, rect.y + 10))
         self.screen.blit(text_surface, text_rect)
     # Vẽ map (Xem trước)
+   
     def draw_map_preview(self, map_data: List[str], preview_rect: pygame.Rect):
         map_width = len(map_data[0])
         map_height = len(map_data)
         cell_width = preview_rect.width // map_width
         cell_height = preview_rect.height // map_height
 
+        # Load images before the loop (you need to have the image files ready)
+        image_dir = os.path.join(os.path.dirname(__file__), 'img')
+
+        self.wall_image = pygame.image.load(os.path.join(image_dir, 'wall.png'))
+        self.player_image = pygame.image.load(os.path.join(image_dir, 'ghost.png'))
+        self.block_image = pygame.image.load(os.path.join(image_dir, 'box2.png'))
+        self.target_image = pygame.image.load(os.path.join(image_dir, 'target.png'))
+
+        # Scale images to match cell size
+        self.wall_image = pygame.transform.scale(self.wall_image, (cell_width, cell_height))
+        self.player_image = pygame.transform.scale(self.player_image, (cell_width, cell_height))
+        self.block_image = pygame.transform.scale(self.block_image, (cell_width, cell_height))
+        self.target_image = pygame.transform.scale(self.target_image, (cell_width, cell_height))
+
+        # Draw the map
         for row_index, row in enumerate(map_data):
             for col_index, cell in enumerate(row):
                 rect = pygame.Rect(
@@ -310,13 +294,13 @@ class SokobanGame:
                     cell_width, cell_height
                 )
                 if cell == 'W':
-                    pygame.draw.rect(self.screen, self.GRAY, rect)
+                    self.screen.blit(self.wall_image, rect.topleft)
                 elif cell == 'P':
-                    pygame.draw.rect(self.screen, self.LIGHT_BLUE, rect)
+                    self.screen.blit(self.player_image, rect.topleft)
                 elif cell == 'B':
-                    pygame.draw.rect(self.screen, self.DARK_BLUE, rect)
+                    self.screen.blit(self.block_image, rect.topleft)
                 elif cell == 'T':
-                    pygame.draw.circle(self.screen, self.BLACK, rect.center, min(cell_width, cell_height) // 2 - 1)
+                    self.screen.blit(self.target_image, rect.topleft)
 
     # Vẽ phần chọn map
     def map_selection_screen(self) -> Tuple[int, str]:
