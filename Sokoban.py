@@ -28,7 +28,7 @@ class SokobanGame:
         self.load_assets()
         self.maps = self.load_maps('maps.txt')
         self.current_algorithm = 'hillclimbing'
-        self.algorithms = ['astar', 'hillclimbing']
+        self.algorithms = ['astar', 'hillclimbing','bfs']
         self.player_direction = 'ghost' 
         self.game_time = 0
         self.start_time = None
