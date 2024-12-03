@@ -6,7 +6,7 @@ from typing import List, Tuple, Optional
 from sokoban_common import SokobanState, MOVES
 from astar_solver import solve_sokoban_astar
 from hill_climbing_solver import solve_sokoban_hillclimbing
-#from bfs_solver import solve_sokoban_bfs
+from bfs_solver import solve_sokoban_bfs
 
 class SokobanGame:
     WHITE = (255, 255, 255)
@@ -490,6 +490,9 @@ class SokobanGame:
                                                list(current_state.boxes), list(current_state.targets))
         elif self.current_algorithm == 'hillclimbing':
             solution = self.solve_with_timeout(solve_sokoban_hillclimbing, current_state.maze, current_state.player_pos,
+                                               list(current_state.boxes), list(current_state.targets))
+        elif self.current_algorithm == 'bfs':
+            solution = self.solve_with_timeout(solve_sokoban_bfs, current_state.maze, current_state.player_pos,
                                                list(current_state.boxes), list(current_state.targets))
         
         self.solve_time = time.time() - solve_start_time
