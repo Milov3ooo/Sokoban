@@ -16,27 +16,28 @@ class SokobanGame:
     GRAY = (200, 200, 200)
     GREEN =(34,139,34)
     RED = (220,20,60)
-    BLUE = (0, 122, 204)          # Nhấn mạnh
+    BLUE = (0, 122, 204)          
     LIGHT_BLUE = (173, 216, 230)
     DARK_BLUE = (0, 0, 139)
     DARK_GRAY = (64, 64, 64)
-    MEDIUM_GRAY = (70, 70, 70)    # Màu nút
-    LIGHT_GRAY = (100, 100, 100)  # Viền nút
-    WHITE = (255, 255, 255)       # Màu chữ sáng   
+    MEDIUM_GRAY = (70, 70, 70)    
+    LIGHT_GRAY = (100, 100, 100)  
+    WHITE = (255, 255, 255)         
     BACKGROUND = (255, 160, 122)
+
 # Khởi tạo
     def __init__(self, window_size: Tuple[int, int] = (1100, 600)):
         pygame.init()
         self.window_size = window_size
         self.screen = pygame.display.set_mode(window_size)
-        pygame.display.set_caption("Sokoban Game")
+        pygame.display.set_caption("Sokoban Game (Noel version)")
  
         self.cell_size = 50
         self.load_assets()
         self.maps = self.load_maps('maps.txt')
         self.current_algorithm = 'hillclimbing'
         self.algorithms = ['astar', 'hillclimbing','bfs']
-        self.player_direction = 'ghost' 
+        self.player_direction = 'player' 
         self.game_time = 0
         self.start_time = None
         self.pause_time = 0
@@ -45,6 +46,8 @@ class SokobanGame:
         self.solve_steps = 0      
         self.player_moves = []
         self.player_moves_by_space = []
+        self.FONT = pygame.font.Font(None, 48)   
+        self.screen = pygame.display.set_mode(self.window_size) 
 
 # Tài nguyên      
 
@@ -57,7 +60,7 @@ class SokobanGame:
         để phù hợp với kích thước ô lưới (`self.cell_size`).
                
         """
-        assets = ['wall', 'ghost', 'box', 'target', 'left', 'right', 'up', 'down']
+        assets = ['wall', 'player', 'box', 'target', 'left', 'right', 'up', 'down']
         self.images = {}
         for asset in assets:
             image = pygame.image.load(f'img/{asset}.png')
@@ -86,9 +89,23 @@ class SokobanGame:
         return move_map.get(move, '')
     
     # Lưu giải pháp
-
     def save_solution(self, map_index: int):
-        """Lưu giải pháp vào file solution tương ứng"""
+       def save_solution(self, map_index: int):
+        """Lưu giải pháp di chuyển của game Sokoban vào file solution.
+
+        Chức năng:
+        - Lưu các bước di chuyển từ người chơi và AI 
+        - Tránh trùng lặp các giải pháp đã tồn tại
+        - Tạo file solution theo từng map
+
+        Arguments:
+            map_index (int): Chỉ số của map hiện tại (zero-indexed)
+
+        Note:
+        - Bỏ qua nếu không có bước di chuyển nào
+        - Hỗ trợ lưu từ di chuyển thủ công và AI
+        - Thêm dấu '#' để phân tách các solution
+        """
 
         if not self.player_moves and not self.player_moves_by_space:
             return
@@ -124,7 +141,22 @@ class SokobanGame:
                     file.write(f'{solution}\n#')       
                              
     # Sắp xếp giải pháp
-    def sort_solutions(self,map_index):
+    def sort_solutions(self, map_index):
+        """Sắp xếp các giải pháp trong file solution theo độ dài.
+
+        Chức năng:
+        - Đọc các giải pháp từ file solution của map cụ thể
+        - Sắp xếp các giải pháp tăng dần theo số bước di chuyển
+        - Ghi lại file với thứ tự giải pháp mới
+
+        Arguments:
+            map_index (int): Chỉ số của map (zero-indexed)
+
+        note:
+        - Bỏ qua nếu file solution trống
+        - Loại bỏ khoảng trắng khi tính độ dài giải pháp
+        - Giữ nguyên định dạng file với dấu '#' phân tách
+        """
         file_path = f'solution/solution_{map_index+1}.txt'
         try:
         # Đọc nội dung file
@@ -152,6 +184,7 @@ class SokobanGame:
             pass
         except Exception as e:
             print(f"Đã xảy ra lỗi: {e}")
+
     # Đọc các giải pháp
     @staticmethod
     def read_solutions(map_index):
@@ -161,6 +194,7 @@ class SokobanGame:
             return [solution.strip().split() for solution in solutions if solution.strip()]
         except FileNotFoundError:
             return []
+        
     # Chuyển giải pháp về đúng dạng
     @staticmethod
     def parse_solution(solution):
@@ -171,6 +205,7 @@ class SokobanGame:
             'D': (0, 1)
         }
         return [move_dict[move] for move in solution]
+    
 # Map
     # Đọc map
     @staticmethod
@@ -217,6 +252,17 @@ class SokobanGame:
             maze.append(maze_row)
         return maze, player_pos, boxes, targets
     
+    def draw_background(self):
+        # Tải hình ảnh nền
+        self.background_image = pygame.image.load(os.path.join('img', 'background.png'))
+        
+        # Điều chỉnh kích thước hình nền cho phù hợp với kích thước cửa sổ
+        self.background_image = pygame.transform.scale(self.background_image, (self.window_size[0], self.window_size[1]))
+        
+        # Vẽ hình nền lên màn hình
+        self.screen.blit(self.background_image, (0, 0))
+
+    
     # Vẽ mê cung
     def draw_maze(self, maze: List[List[int]], boxes: List[Tuple[int, int]], targets: List[Tuple[int, int]]):
         self.screen.fill(self.BACKGROUND)
@@ -236,7 +282,7 @@ class SokobanGame:
 
         self.draw_info_panel()
 
-# Vẽ khung chức năng  
+# # Vẽ khung chức năng  
     def draw_info_panel(self):
         panel_rect = pygame.Rect(800, 0, 300, self.window_size[1])
         pygame.draw.rect(self.screen, self.GRAY, panel_rect)
@@ -261,16 +307,57 @@ class SokobanGame:
         algorithm_text = font.render(f"Algorithm: {self.current_algorithm.upper()}", True, self.BLACK)
         self.screen.blit(algorithm_text, (820, 140))
 
-        # Draw buttons
-        button_texts = ["Pause (P)", "Reset (R)", "Select (Esc)", "Quit"]
-        for i, text in enumerate(button_texts):
-            button_rect = pygame.Rect(820, 220 + i*60, 260, 50)
-            pygame.draw.rect(self.screen, self.LIGHT_BLUE, button_rect)
-            button_text = font.render(text, True, self.BLACK)
-            text_rect = button_text.get_rect(center=button_rect.center)
-            self.screen.blit(button_text, text_rect)
+        # Load button images
+        pause_button = pygame.image.load(os.path.join(os.path.dirname(__file__), 'img', 'pause.png')).convert_alpha()
+        reset_button = pygame.image.load(os.path.join(os.path.dirname(__file__), 'img', 'reset.png')).convert_alpha()
+        select_button = pygame.image.load(os.path.join(os.path.dirname(__file__), 'img', 'select.png')).convert_alpha()
+        quit_button = pygame.image.load(os.path.join(os.path.dirname(__file__), 'img', 'quit.png')).convert_alpha()
 
- #vẽ nút
+        # Resize images to fit button size
+        button_images = [
+            pygame.transform.scale(pause_button, (40, 40)),
+            pygame.transform.scale(reset_button, (40, 40)),
+            pygame.transform.scale(select_button, (40, 40)),
+            pygame.transform.scale(quit_button, (40, 40))
+        ]
+
+        # Button labels (key shortcuts)
+        button_texts = ["Pause (P)", "Reset (R)", "Menu (Esc)", "Exit (Q)"]
+
+        # Draw button images and texts
+        font = pygame.font.Font(None, 36)
+        for i, (button_image, text) in enumerate(zip(button_images, button_texts)):
+            y_offset = 220 + i * 60  # Adjust vertical spacing between buttons
+            
+            # Center icon and text in the same row
+            icon_pos = (830, y_offset + 10)  # Icon position
+            text_pos = (880, y_offset + 15)  # Text position, aligned with the icon vertically
+
+            # Draw icon
+            self.screen.blit(button_image, icon_pos)
+
+            # Render and draw text
+            button_text = font.render(text, True, self.BLACK)
+            self.screen.blit(button_text, text_pos)
+
+        # Add notification box for "Press SPACE for AI solves"
+        notification_rect = pygame.Rect(820, 500, 260, 80)
+        pygame.draw.rect(self.screen, self.DARK_GRAY, notification_rect, border_radius=10)
+        pygame.draw.rect(self.screen, self.WHITE, notification_rect.inflate(-6, -6), border_radius=10)
+
+        notification_font = pygame.font.Font(None, 28)
+
+        # Text for "Press SPACE for AI solves"
+        ai_solve_text = notification_font.render("Press SPACE for AI solves", True, self.BLACK)
+        ai_solve_rect = ai_solve_text.get_rect(center=(notification_rect.centerx, notification_rect.top + 20))
+        self.screen.blit(ai_solve_text, ai_solve_rect)
+
+        # Text for "Solve Time"
+        solve_time_text = notification_font.render(f"Solve Time: {self.solve_time:.5f}s", True, self.GREEN)
+        solve_time_rect = solve_time_text.get_rect(center=(notification_rect.centerx, notification_rect.top + 50))
+        self.screen.blit(solve_time_text, solve_time_rect)
+
+    #vẽ nút
     def draw_button(self, text, rect, color, hover=False):
         shadow_offset = 5
         pygame.draw.rect(self.screen, self.DARK_GRAY, rect.move(shadow_offset, shadow_offset), border_radius=10)
@@ -281,31 +368,36 @@ class SokobanGame:
         label = font.render(text, True, self.WHITE)
         self.screen.blit(label, (rect.centerx - label.get_width() // 2, rect.centery - label.get_height() // 2))
 
-
-
-    # Vẽ map (Xem trước)
-   
+    # # Vẽ map (Preview)  
     def draw_map_preview(self, map_data: List[str], preview_rect: pygame.Rect):
-        map_width = len(map_data[0])
-        map_height = len(map_data)
-        cell_width = preview_rect.width // map_width
-        cell_height = preview_rect.height // map_height
+        """Vẽ bản xem trước của map Sokoban tại vị trí được chỉ định."""
+        
+        # Load hình ảnh nền cho bản đồ
+        self.background_image = pygame.image.load(os.path.join('img', 'background.png'))
+        
+        # Điều chỉnh kích thước hình nền cho phù hợp với kích thước khu vực preview
+        preview_width, preview_height = preview_rect.width, preview_rect.height
+        self.background_image = pygame.transform.scale(self.background_image, (preview_width, preview_height))
+        
+        # Vẽ hình nền vào khu vực preview
+        self.screen.blit(self.background_image, preview_rect.topleft)
+        
+        # Sau đó vẽ các phần tử của map
+        self.wall_image = pygame.image.load(os.path.join('img', 'wall.png'))
+        self.player_image = pygame.image.load(os.path.join('img', 'player.png'))
+        self.block_image = pygame.image.load(os.path.join('img', 'box2.png'))
+        self.target_image = pygame.image.load(os.path.join('img', 'target.png'))
 
-        # Load images before the loop (you need to have the image files ready)
-        image_dir = os.path.join(os.path.dirname(__file__), 'img')
-
-        self.wall_image = pygame.image.load(os.path.join(image_dir, 'wall.png'))
-        self.player_image = pygame.image.load(os.path.join(image_dir, 'ghost.png'))
-        self.block_image = pygame.image.load(os.path.join(image_dir, 'box2.png'))
-        self.target_image = pygame.image.load(os.path.join(image_dir, 'target.png'))
-
-        # Scale images to match cell size
+        # Scale các hình ảnh để phù hợp với kích thước ô
+        cell_width = preview_width // len(map_data[0])
+        cell_height = preview_height // len(map_data)
+        
         self.wall_image = pygame.transform.scale(self.wall_image, (cell_width, cell_height))
         self.player_image = pygame.transform.scale(self.player_image, (cell_width, cell_height))
         self.block_image = pygame.transform.scale(self.block_image, (cell_width, cell_height))
         self.target_image = pygame.transform.scale(self.target_image, (cell_width, cell_height))
 
-        # Draw the map
+        # Vẽ các phần tử map (tường, người chơi, hộp, mục tiêu)
         for row_index, row in enumerate(map_data):
             for col_index, cell in enumerate(row):
                 rect = pygame.Rect(
@@ -321,6 +413,7 @@ class SokobanGame:
                     self.screen.blit(self.block_image, rect.topleft)
                 elif cell == 'T':
                     self.screen.blit(self.target_image, rect.topleft)
+
 
 # # Vẽ phần chọn map   
     def map_selection_screen(self) -> Tuple[int, str]:
@@ -387,7 +480,7 @@ class SokobanGame:
 
                 pygame.display.flip()
 
-
+#Update hướng di chuyển
     def update_player_direction(self, move):
         if move == (-1, 0):
             self.player_direction = 'left'
@@ -400,6 +493,28 @@ class SokobanGame:
 
     # Hoạt ảnh giải pháp
     def animate_solution(self, initial_state: SokobanState, solution: List[Tuple[int, int]]):
+        """Hiển thị hoạt ảnh giải pháp tự động cho map Sokoban.
+
+        Chức năng:
+        - Thực thi các bước di chuyển từ giải pháp đã cho
+        - Cập nhật trạng thái game và vẽ lại màn hình sau mỗi bước
+        - Xử lý sự kiện thoát game
+        - Kiểm tra điều kiện hoàn thành level
+
+        Arguments:
+            initial_state (SokobanState): Trạng thái ban đầu của map
+            solution (List[Tuple[int, int]]): Danh sách các bước di chuyển
+
+        Returns:
+            str: Trạng thái kết quả ("COMPLETE" nếu giải quyết thành công)
+
+        Các bước thực hiện:
+        - Lặp qua từng bước di chuyển
+        - Cập nhật hướng người chơi
+        - Vẽ lại map sau mỗi bước
+        - Tạo độ trễ giữa các bước để tạo hiệu ứng động
+        - Kiểm tra điều kiện hoàn thành level
+        """
         current_state = initial_state
         for move in solution:
             self.solve_steps += 1
@@ -416,9 +531,7 @@ class SokobanGame:
             player_pos = (current_state.player_pos[0] * self.cell_size, 
                         current_state.player_pos[1] * self.cell_size)
             self.screen.blit(self.images[self.player_direction], player_pos)
-            font = pygame.font.Font(None, 36)
-            time_text_solve = font.render(f"Solve Time: {self.solve_time:.5f}s", True, self.GREEN)
-            self.screen.blit(time_text_solve, (820, 500))
+            font = pygame.font.Font(None, 36)                
             pygame.display.flip()
             pygame.time.wait(100)
             if current_state.is_goal():
@@ -441,6 +554,7 @@ class SokobanGame:
         self.screen.blit(instruction_text, (270, 350))
         
         pygame.display.flip()
+
     # Dừng thời gian
     def toggle_pause(self):
         if self.is_paused:
@@ -448,6 +562,7 @@ class SokobanGame:
         else:
             self.pause_start_time = time.time()
         self.is_paused = not self.is_paused
+
     # Sự kiện click chuột
     def handle_mouse_click(self, pos: Tuple[int, int], first_move: bool) -> Optional[str]:
         if 820 <= pos[0] <= 1080:
@@ -463,28 +578,44 @@ class SokobanGame:
             elif 400 <= pos[1] <= 450:  # Quit button
                 return "QUIT"
         return None
+      
     # Sự kiện nhấn nút
     def handle_key_press(self, event: pygame.event.Event, current_state: SokobanState, first_move: bool) -> Tuple[Optional[str], SokobanState, bool]:
         if event.key == pygame.K_r:
+            # Reset lại màn chơi
             return "RESET", current_state, first_move
-        elif event.key == pygame.K_ESCAPE:
+        elif event.key == pygame.K_ESCAPE or event.key == pygame.K_q:
+            # Quay lại màn hình chọn map
             return "SELECT", current_state, first_move
         elif event.key == pygame.K_p:
+            # Tạm dừng hoặc tiếp tục trò chơi
             self.toggle_pause()
             return None, current_state, first_move
         elif event.key == pygame.K_SPACE:
+            # AI giải đố
             self.player_moves_by_space = []
             result = self.handle_solution(current_state)
             if result == "COMPLETE":
                 return "COMPLETE", current_state, first_move
             return None, current_state, first_move
-        
+
+        # Xử lý di chuyển khi không ở chế độ tạm dừng và không phải bước đầu tiên
         if not self.is_paused and not first_move:
             new_state, moved = self.move_player(event.key, current_state)
             if moved:
                 self.solve_steps += 1
                 return None, new_state, first_move
         return None, current_state, first_move
+    
+    def toggle_pause(self):
+        self.is_paused = not self.is_paused
+        
+    def draw_pause_message(self):
+        if self.is_paused:
+            pause_text = self.FONT.render("Game Paused", True, self.RED)
+            pause_rect = pause_text.get_rect(center=(self.window_size[0] // 2, self.window_size[1] // 2))
+            self.screen.blit(pause_text, pause_rect)
+
     # Di chuyển nhân vật
     def move_player(self, key: int, current_state: SokobanState) -> Tuple[SokobanState, bool]:
         direction = {
@@ -531,6 +662,7 @@ class SokobanGame:
             current_state._zone_map,
             current_state._deadlock_cache
         ), True
+    
     # Giới hạn thời gian tìm kiếm
     def solve_with_timeout(self, solver_func, *args):
         solution = [None]
@@ -545,6 +677,7 @@ class SokobanGame:
             # Nếu thread vẫn đang chạy sau 30 giây
             return None
         return solution[0]
+    
     # Tìm kếm giải pháp
     def handle_solution(self, current_state: SokobanState) -> Optional[str]:
         solve_start_time = time.time()
@@ -590,7 +723,7 @@ class SokobanGame:
     def is_valid_solution(self, state: SokobanState, solution: List[Tuple[int, int]]) -> bool:
         for move in solution:
             new_state = state.apply_move(move)
-            if new_state == state:  # If the state didn't change, the move was invalid
+            if new_state == state:  # Nếu trạng thái không thay đổi thì động thái đó không có hiệu lực
                 return False
             state = new_state
         return state.is_goal()
@@ -601,12 +734,13 @@ class SokobanGame:
         self.draw_maze(current_state.maze, list(current_state.boxes), list(current_state.targets))
         player_pos = (current_state.player_pos[0] * self.cell_size, 
                      current_state.player_pos[1] * self.cell_size)
-        self.screen.blit(self.images['ghost'], player_pos)
+        self.screen.blit(self.images['player'], player_pos)
         font = pygame.font.Font(None, 74)
         text = font.render('No solution found!', True, self.RED)
         self.screen.blit(text, (300, 250))
         pygame.display.flip()
         pygame.time.wait(2000)
+
     # Cập nhật hình của màn chơi
     def update_game_state(self, current_state: SokobanState, first_move: bool):
         if not self.is_paused:
@@ -628,12 +762,12 @@ class SokobanGame:
             self.screen.blit(text, text_rect)
         return None
 
-    
     def play_game(self, initial_state: SokobanState) -> str:
         current_state = initial_state
         clock = pygame.time.Clock()
         first_move = True
-        
+        result = None
+
         while True:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -644,28 +778,30 @@ class SokobanGame:
                         if result:
                             return result
                 elif event.type == pygame.KEYDOWN:
+                      # Xử lý di chuyển đầu tiên
                     if first_move and event.key in [pygame.K_LEFT, pygame.K_RIGHT, pygame.K_UP, pygame.K_DOWN]:
                         self.start_time = time.time()
                         first_move = False
                     
+                     # Loại bỏ điều kiện first_move để các phím khác luôn được xử lý
                     result, current_state, first_move = self.handle_key_press(event, current_state, first_move)
                     if result:
                         return result
-            
+
             result = self.update_game_state(current_state, first_move)
             if result:
                 return result
-            
+
             pygame.display.flip()
             clock.tick(60)
-    
+
     def run(self):
         while True:
             selected_map, algorithm = self.map_selection_screen()
             self.current_map = self.maps[selected_map]
             maze, player_pos, boxes, targets = self.map_to_game_state(self.current_map)
             initial_state = SokobanState(tuple(tuple(row) for row in maze), player_pos, frozenset(boxes), frozenset(targets))
-            
+
             font = pygame.font.Font(None, 36)
             text = font.render('Press SPACE to solve automatically', True, self.BLACK)
             self.screen.blit(text, (330, 100))
@@ -682,31 +818,31 @@ class SokobanGame:
 
             while True:
                 result = self.play_game(initial_state)
-                if result == "QUIT":               
+                if result == "QUIT":
                     pygame.quit()
                     sys.exit()
                 elif result == "RESET":
-                    current_algorithm = self.current_algorithm  
+                    current_algorithm = self.current_algorithm
                     self.__init__()
                     self.current_algorithm = current_algorithm
-                    pygame.display.flip()      
-                elif result == "SELECT": 
+                    pygame.display.flip()
+                elif result == "SELECT":
                     break
                 elif result == "COMPLETE":
                     waiting_for_input = True
                     while waiting_for_input:
                         for event in pygame.event.get():
-                            if event.type == pygame.QUIT:                           
+                            if event.type == pygame.QUIT:
                                 pygame.quit()
                                 sys.exit()
                             if event.type == pygame.KEYDOWN:
                                 if event.key == pygame.K_SPACE:
-                                    current_algorithm = self.current_algorithm                           
+                                    current_algorithm = self.current_algorithm
                                     self.__init__()
                                     self.current_algorithm = current_algorithm
                                     waiting_for_input = False
                                     break
-                    
+
 if __name__ == "__main__":
     game = SokobanGame()
     game.run()
