@@ -57,7 +57,7 @@ class SokobanGame:
         để phù hợp với kích thước ô lưới (`self.cell_size`).
                
         """
-        assets = ['wall', 'ghost', 'box', 'target', 'trai', 'phai', 'tren', 'duoi']
+        assets = ['wall', 'ghost', 'box', 'target', 'left', 'right', 'up', 'down']
         self.images = {}
         for asset in assets:
             image = pygame.image.load(f'img/{asset}.png')
@@ -133,7 +133,7 @@ class SokobanGame:
                 
                 # Kiểm tra nếu file trống, bỏ qua
                 if not content:
-                    # Thay vì return, ta dùng pass để chỉ bỏ qua file này
+                    # dùng pass để chỉ bỏ qua file này
                     pass  
                 
                 else:
@@ -390,13 +390,13 @@ class SokobanGame:
 
     def update_player_direction(self, move):
         if move == (-1, 0):
-            self.player_direction = 'trai'
+            self.player_direction = 'left'
         elif move == (1, 0):
-            self.player_direction = 'phai'
+            self.player_direction = 'right'
         elif move == (0, -1):
-            self.player_direction = 'tren'
+            self.player_direction = 'up'
         elif move == (0, 1):
-            self.player_direction = 'duoi'
+            self.player_direction = 'down'
 
     # Hoạt ảnh giải pháp
     def animate_solution(self, initial_state: SokobanState, solution: List[Tuple[int, int]]):
@@ -417,7 +417,7 @@ class SokobanGame:
                         current_state.player_pos[1] * self.cell_size)
             self.screen.blit(self.images[self.player_direction], player_pos)
             font = pygame.font.Font(None, 36)
-            time_text_solve = font.render(f"Solve Time: {self.solve_time:.5f}", True, self.GREEN)
+            time_text_solve = font.render(f"Solve Time: {self.solve_time:.5f}s", True, self.GREEN)
             self.screen.blit(time_text_solve, (820, 500))
             pygame.display.flip()
             pygame.time.wait(100)
@@ -488,10 +488,10 @@ class SokobanGame:
     # Di chuyển nhân vật
     def move_player(self, key: int, current_state: SokobanState) -> Tuple[SokobanState, bool]:
         direction = {
-            pygame.K_LEFT: (-1, 0, 'trai'),
-            pygame.K_RIGHT: (1, 0, 'phai'),
-            pygame.K_UP: (0, -1, 'tren'),
-            pygame.K_DOWN: (0, 1, 'duoi')
+            pygame.K_LEFT: (-1, 0, 'left'),
+            pygame.K_RIGHT: (1, 0, 'right'),
+            pygame.K_UP: (0, -1, 'up'),
+            pygame.K_DOWN: (0, 1, 'down')
         }.get(key)
         
         if not direction:
@@ -585,6 +585,7 @@ class SokobanGame:
                         return "COMPLETE"
             self.handle_no_solution(current_state)
         return None
+    
     # Kiểm tra khả năng giải
     def is_valid_solution(self, state: SokobanState, solution: List[Tuple[int, int]]) -> bool:
         for move in solution:
@@ -593,6 +594,7 @@ class SokobanGame:
                 return False
             state = new_state
         return state.is_goal()
+    
     # Hành động không hoàn thành trò chơi
     def handle_no_solution(self, current_state: SokobanState):
         self.game_time = 0

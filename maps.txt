@@ -1,12 +1,12 @@
 # Map 1
 WWWWWWWWWWWWWWWW
-W  T B         W 
-W              W
-W          W   W
-W  P B         W
-W              W
-WW WWWW   WWWWWW
-W         WT   W
+W  T B  W      W 
+W       W      W
+W       W      W
+W  P B  W      W
+W       W      W
+WWWWWWW   WWWWWW
+W    W     WT  W
 W    T         W
 W          B   W
 W              W
